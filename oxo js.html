@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="utf-8">
+    <title>OXO</title>
+    <style>
+        .oxo {
+            float: left;
+            width: 360px;
+            height: 360px;
+            background-color: white;
+            margin: auto;
+        }
+
+        .field {
+            float: left;
+            margin: auto;
+            width: 120px;
+            height: 120px;
+            font-size: 50px;
+        }
+
+        .result {
+            float: left;
+            clear: both;
+            text-align: center;
+            color: black;
+            width: 360px;
+            height: 60px;
+            font-size: 25px;
+            background-color: khaki;
+            margin: auto;
+        }
+    </style>
+    <script>
+        signs = ["X", "O"]
+        buttons = []
+        fields = []
+        fieldPosX = ["l", "c", "r"];
+        fieldPosY = ["t", "m", "b"];
+
+        function load() { //create buttons
+            const oxo = document.getElementById("oxo");
+            for (i = 0; i < 9; i++) {
+                id = fieldPosX[i % 3] + fieldPosY[Math.floor(i / 3)]
+                buttons[i] = createButton("", makeMove, "", "field", id)
+                oxo.appendChild(buttons[i])
+            }
+
+            for (i = 0; i < 9; i++) {
+                id = fieldPosX[i % 3] + fieldPosY[Math.floor(i / 3)]
+                fields[i] = document.getElementById(id)
+            }
+        }
+
+        function makeMove(isBotMoving) { //making move, check if match ended
+            mark = isBotMoving ? "O" : "X";
+            this.disabled = true;
+            this.value = "X";
+            this.innerText = "X";
+            if (isDraw(fields))
+                draw()
+            else if (isPlayerWin(fields))
+                end("X")
+            else {
+                board = []
+                for (i = 0; i < 9; i++)
+                    board[i] = [fields[i].id, fields[i].value]
+                makeBotMove(findBestMove(board));
+            }
+        }
+
+        function isPlayerWin(fieldsArray) { //check if somebody wins game
+            for (i = 0; i < 3; i++) {
+                if ((fieldsArray[0 + i * 3].value == "X" || fieldsArray[0 + i * 3].value == "O") && fieldsArray[0 + i * 3].value == fieldsArray[1 + i * 3].value && fieldsArray[1 + i * 3].value == fieldsArray[2 + i * 3].value)
+                    return true;
+                else if ((fieldsArray[0 + i].value == "X" || fieldsArray[0 + i].value == "O") && fieldsArray[0 + i].value == fieldsArray[3 + i].value && fieldsArray[3 + i].value == fieldsArray[6 + i].value)
+                    return true;
+            }
+            if ((fieldsArray[0].value == "X" || fieldsArray[0].value == "O") && fieldsArray[0].value == fieldsArray[4].value && fieldsArray[4].value == fieldsArray[8].value)
+                return true;
+            else if ((fieldsArray[2].value == "X" || fieldsArray[2].value == "O") && fieldsArray[2].value == fieldsArray[4].value && fieldsArray[4].value == fieldsArray[6].value)
+                return true;
+            return false;
+        }
+
+        function end(winner) { //end game if someone wins
+            for (i = 0; i < 9; i++)
+                fields[i].disabled = true;
+            document.getElementById("result").innerHTML = winner + " wins!";
+            resetButton = createButton("Play again", reset, "reset", "reset", "reset");
+            document.getElementById("result").appendChild(document.createElement("br"));
+            document.getElementById("result").appendChild(resetButton);
+        }
+
+        function isDraw(fieldsArray) { //check if game is drawed
+            disabled = 0;
+            for (i = 0; i < 9; i++)
+                if (fieldsArray[i].disabled == true)
+                    disabled++;
+            if (disabled == 9)
+                return true;
+            else return false;
+        }
+
+        function draw() { //end game if game is drawed
+            document.getElementById("result").innerHTML = "Draw";
+            resetButton = createButton("Play again", reset, "reset", "reset", "reset")
+            document.getElementById("result").appendChild(document.createElement("br"))
+            document.getElementById("result").appendChild(resetButton);
+        }
+
+        function reset() { //reset board to play again
+            for (i = 0; i < 9; i++) {
+                fields[i].disabled = false;
+                fields[i].value = "";
+                fields[i].innerText = "";
+            }
+            document.getElementById("result").innerHTML = "";
+        }
+
+        function findBestMove(board) {
+            return (tryWin(board, "O") || tryWin(board, "X") || tryBranch(board, "O") || tryBranch(board, "X") || tryCenter(board) || tryOppositeCorner(board) || tryEmptyCorner(board) || tryEmptySide(board));
+        }
+
+        function makeBotMove(id) { //make bot's move
+            document.getElementById(id).disabled = true;
+            document.getElementById(id).value = "O";
+            document.getElementById(id).innerText = "O";
+            if (isDraw(fields))
+                draw()
+            else if (isPlayerWin(fields))
+                end("O")
+        }
+
+        function tryWin(board, sign) { //check if bot can make winning move
+            for (i = 0; i < 3; i++) {
+                //collumns
+                if (board[1 + i * 3][1] == sign && board[1 + i * 3][1] == board[2 + i * 3][1] && board[0 + i * 3][1] == "")
+                    return board[0 + i * 3][0];
+                else if (board[0 + i * 3][1] == sign && board[0 + i * 3][1] == board[2 + i * 3][1] && board[1 + i * 3][1] == "")
+                    return board[1 + i * 3][0];
+                else if (board[0 + i * 3][1] == sign && board[0 + i * 3][1] == board[1 + i * 3][1] && board[2 + i * 3][1] == "")
+                    return board[2 + i * 3][0];
+                //rows
+                else if (board[3 + i][1] == sign && board[3 + i][1] == board[6 + i][1] && board[0 + i][1] == "")
+                    return board[0 + i][0];
+                else if (board[0 + i][1] == sign && board[0 + i][1] == board[6 + i][1] && board[3 + i][1] == "")
+                    return board[3 + i][0];
+                else if (board[0 + i][1] == sign && board[0 + i][1] == board[3 + i][1] && board[6 + i][1] == "")
+                    return board[6 + i][0];
+            }
+            //first diagonal
+            if (board[4][1] == sign && board[4][1] == board[8][1] && board[0][1] == "")
+                return board[0][0];
+            else if (board[0][1] == sign && board[0][1] == board[8][1] && board[4][1] == "")
+                return board[4][0];
+            else if (board[0][1] == sign && board[0][1] == board[4][1] && board[8][1] == "")
+                return board[8][0];
+
+            //second diagonal
+            if (board[4][1] == sign && board[4][1] == board[6][1] && board[2][1] == "")
+                return board[2][0];
+            else if (board[2][1] == sign && board[2][1] == board[6][1] && board[4][1] == "")
+                return board[4][0];
+            else if (board[2][1] == sign && board[2][1] == board[4][1] && board[6][1] == "")
+                return board[6][0];
+
+            return null;
+        }
+
+        function tryBranch(board, sign) { //check if bot can make branching move
+            checkedColumns = new Set();
+            areDiagonalsGood = checkDiagonals(board, sign);
+
+            for (i = 0; i < 3; i++) {
+                badW = false;
+                for (j = 0; j < 3 && !badW; j++) {
+                    if (board[j + i * 3][1] != "" || checkedColumns.has(j + i * 3))
+                        continue;
+                    myFieldsInW = 0;
+                    emptyFieldsInR = 0;
+                    myFieldsInC = 0;
+                    emptyFieldsInC = 0;
+                    for (k = 0; k < 3; k++) {
+                        if (board[k + i * 3][1] == sign)
+                            myFieldsInW++;
+                        else if (board[k + i * 3][1] == "")
+                            emptyFieldsInR++;
+
+                        if (board[j + k * 3][1] == sign)
+                            myFieldsInC++;
+                        else if (board[j + k * 3][1] == "")
+                            emptyFieldsInC++;
+                    }
+                    if (emptyFieldsInC == 2 && emptyFieldsInR == 2 && myFieldsInC == 1 && myFieldsInW == 1)
+                        return board[j + i * 3][0]
+                    if (emptyFieldsInR != 2 && myFieldsInW != 1)
+                        badW = true;
+                    if (emptyFieldsInC != 2 && myFieldsInC != 1)
+                        checkedColumns.add(j);
+                }
+                if (!badW) {
+                    if (areDiagonalsGood[0] && board[i + i * 3][1] == "")
+                        return board[i + i * 3][0];
+                    if (areDiagonalsGood[1] && board[2 + i * 2][1] == "")
+                        return board[2 + i * 2][0];
+                }
+                if (checkedColumns.has(i)) {
+                    if (areDiagonalsGood[0] && board[i + i * 3][1] == "")
+                        return board[i + i * 3][0];
+                    if (areDiagonalsGood[1] && board[2 + i * 2][1] == "")
+                        return board[2 + i * 2][0];
+                }
+            }
+            if (board[4][1] == "" && areDiagonalsGood[0] && areDiagonalsGood[1])
+                return board[4][0];
+            return null;
+        }
+
+        function checkDiagonals(board, sign) { //auxiliary method to tryBranch()
+            firstDiagonal = [board[0], board[4], board[8]];
+            secondDiagonal = [board[2], board[4], board[6]];
+            firstEmptyFields = 0;
+            firstMyFields = 0;
+            secondEmptyFields = 0;
+            secondMyFields = 0;
+            for (i = 0; i < 3; i++) {
+                if (firstDiagonal[i][1] == sign)
+                    firstMyFields++;
+                else if (firstDiagonal[i][1] == "")
+                    firstEmptyFields++;
+
+                if (secondDiagonal[i][1] == sign)
+                    secondMyFields++;
+                else if (firstDiagonal[i][1] == "")
+                    secondEmptyFields++;
+            }
+            return [firstEmptyFields == 2 && firstMyFields == 1, secondEmptyFields == 2 && secondMyFields == 1];
+        }
+
+        function tryPlaceSecondSign(board, sign) { //try if can place second sign in a row to try win
+            for (i = 0; i < 3; i++) {
+                if (board[i * 3][1] == "" && board[1 + i * 3][1] == "" && board[2 + i * 3][1] == sign)
+                    return board[1 + i * 3][0];
+                else if (board[i * 3][1] == "" && board[1 + i * 3][1] == sign && board[2 + i * 3][1] == "")
+                    return board[i * 3][0];
+                else if (board[i * 3][1] == sign && board[1 + i * 3][1] == "" && board[2 + i * 3][1] == "")
+                    return board[1 + i * 3][0];
+
+                if (board[i][1] == "" && board[3 + i][1] == "" && board[6 + i][1] == sign)
+                    return board[3 + i][0];
+                else if (board[i][1] == "" && board[3 + i][1] == sign && board[6 + i][1] == "")
+                    return board[i][0];
+                else if (board[i][1] == sign && board[3 + i][1] == "" && board[6 + i][1] == "")
+                    return board[3 + i][0];
+            }
+            if (board[0][1] == "" && board[4][1] == "" && board[8][1] == sign)
+                return board[4][0];
+            else if (board[0][1] == "" && board[4][1] == sign && board[8][1] == "")
+                return board[0][0];
+            else if (board[0][1] == sign && board[4][1] == "" && board[8][1] == "")
+                return board[4][0];
+
+            if (board[2][1] == "" && board[4][1] == "" && board[6][1] == sign)
+                return board[4][0];
+            else if (board[2][1] == "" && board[4][1] == sign && board[6][1] == "")
+                return board[2][0];
+            else if (board[2][1] == sign && board[4][1] == "" && board[6][1] == "")
+                return board[4][0];
+
+            return null;
+        }
+        function tryCenter(board) { //check if can place sign in center field
+            if (board[4][1] == "")
+                return board[4][0];
+            return null;
+        }
+        function tryOppositeCorner(board) { //check if can place sign in opposite empty corner field
+            if (board[0][1] == "" && board[8][1] == "X")
+                return board[0][0];
+            else if (board[0][1] == "X" && board[8][1] == "")
+                return board[8][0];
+            else if (board[2][1] == "" && board[6][1] == "X")
+                return board[2][0];
+            else if (board[2][1] == "X" && board[6][1] == "")
+                return board[6][0];
+
+            return null;
+        }
+
+        function tryEmptyCorner(board) { //check if can place sign in some empty corner field
+            if (board[0][1] == "")
+                return board[0][0];
+            if (board[2][1] == "")
+                return board[2][0];
+            if (board[6][1] == "")
+                return board[6][0];
+            if (board[8][1] == "")
+                return board[8][0];
+
+            return null;
+        }
+
+        function tryEmptySide(board){ //check if can place sign in some empty side field
+            for(i = 0; i < 4 ; i++)
+                if(board[1+i*2][1] == "")
+                    return board[1+i*2][0];
+
+            return null;
+        }
+
+        function createButton(innerText, onClickName, value, className, id) { //creating button, auxiliary method
+            button = document.createElement("button");
+            button.innerText = innerText;
+            button.onclick = onClickName;
+            button.dataset.value = value;
+            button.setAttribute("class", className);
+            button.setAttribute("id", id);
+            return button;
+        }
+    </script>
+</head>
+
+<body onload="load()">
+    <div class="oxo" id="oxo">
+
+    </div>
+    <div class="result" id="result">
+
+    </div>
+</body>
+
+</html>
